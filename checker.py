@@ -75,4 +75,4 @@ def show_options():
 # Ana Fonksiyon
 if __name__ == "__main__":
     send_photos()  # Fotoğrafları otomatik gönder
-    show_options()  # Kullanıcıya seçim sun
+    show_options()  # Kullanıcıya seçim sun ve checker'ı başlat
