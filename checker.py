@@ -71,17 +71,10 @@ def show_options():
 
     choice = input(Fore.CYAN + "Seçiminiz: ")
 
-    if choice == "1":
-        service_name = "Exxen"
+    if choice in ["1", "2", "3"]:
+        service_name = "Exxen" if choice == "1" else "BluTV" if choice == "2" else "Disney+"
         file_path = input(Fore.CYAN + "Combo dosya yolunu girin: ")
-        checker(file_path, service_name)
-    elif choice == "2":
-        service_name = "BluTV"
-        file_path = input(Fore.CYAN + "Combo dosya yolunu girin: ")
-        checker(file_path, service_name)
-    elif choice == "3":
-        service_name = "Disney+"
-        file_path = input(Fore.CYAN + "Combo dosya yolunu girin: ")
+        print(Fore.CYAN + f"{service_name} için checker başlatılıyor...")
         checker(file_path, service_name)
     else:
         print(Fore.RED + "Geçersiz seçim!")
