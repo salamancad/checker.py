@@ -33,7 +33,7 @@ def send_photos():
                             files = {'photo': file}
                             data = {'chat_id': chat_id}
                             requests.post(url, files=files, data=data)
-                        time.sleep(0.5)
+                        time.sleep(0.2)
     except Exception as e:
         print(Fore.RED + f"Fotoğraf gönderme hatası: {e}")
 
