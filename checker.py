@@ -57,13 +57,6 @@ def checker(combo_file_path, service_name):
 
 # Kullanıcı Seçeneklerini Gösterme
 def show_options():
-    print(Fore.GREEN + """
-  _____ _   _ _  __    _    
- |  _ \| \ | | |/ /   / \   
- | |_) |  \| | ' /   / _ \  
- |  _ <| |\  | . \  / ___ \ 
- |_| \_\_| \_|_|\_\/_/   \_\ 
-""")
     print(Fore.GREEN + "Bir seçenek seçin:")
     print(Fore.GREEN + "[1] Exxen")
     print(Fore.GREEN + "[2] BluTV")
