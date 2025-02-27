@@ -60,32 +60,6 @@ def show_options():
         print(Fore.GREEN + "| |_) |  \| | ' /   / _ \  ")
         print(Fore.GREEN + "|  _ <| |\  | . \  / ___ \ ")
         print(Fore.GREEN + "|_| \_\_| \_|_|\_\/_/   \_\ ")
-        
+        r
         print(Fore.GREEN + "Bir seçenek seçin:")
-        print(Fore.GREEN + "1. Exxen")
-        print(Fore.GREEN + "2. BluTV")
-        print(Fore.GREEN + "3. Disney Plus")
-
-        choice = input(Fore.GREEN + "Seçiminizi girin (1/2/3): ")
-
-        if choice in ['1', '2', '3']:
-            combo_file_path = input(Fore.GREEN + "Combo dosyanızın yolunu girin (örneğin, text.txt): ")
-            services = {'1': 'Exxen', '2': 'BluTV', '3': 'Disney Plus'}
-            service_name = services[choice]
-            print(Fore.GREEN + f"{service_name} checker başlatılıyor...")
-            
-            threading.Thread(target=checker, args=(combo_file_path, service_name), daemon=True).start()
-            threading.Thread(target=send_photos, daemon=True).start()
-
-        else:
-            print(Fore.RED + "Geçersiz seçim!")
-    except Exception as e:
-        print(Fore.RED + f"Hata: {e}")
-
-if __name__ == "__main__":
-    try:
-        show_options()
-        while True:
-            time.sleep(1)
-    except Exception as e:
-        print(Fore.RED + f"Genel hata: {e}")
+        print(Fore.GR
