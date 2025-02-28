@@ -2,7 +2,7 @@ import os
 import time
 import requests
 import telegram
-from telegram import InputFile
+from telegram import Bot
 from termcolor import colored  # colorama'yı kullanmayacağız, termcolor yeterli olacak
 
 # Telegram bot token ve chat ID
